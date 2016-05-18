@@ -1,0 +1,61 @@
+checks:
+    php:
+        no_exit: false
+        code_rating: true
+        duplication: true
+        no_global_keyword: true
+        avoid_superglobals: true
+        one_class_per_file: true
+        fix_php_opening_tag: false
+        uppercase_constants: true
+        side_effects_or_types: false
+        verify_property_names: false
+        newline_at_end_of_file: true
+        php5_style_constructor: true
+        psr2_class_declaration: true
+        remove_php_closing_tag: true
+        encourage_single_quotes: true
+        psr2_switch_declaration: true
+        remove_extra_empty_lines: true
+        security_vulnerabilities: false
+        optional_parameters_at_the_end: true
+        no_underscore_prefix_in_methods: true
+        no_underscore_prefix_in_properties: true
+        psr2_control_structure_declaration: false
+        avoid_multiple_statements_on_same_line: true
+        blank_line_after_namespace_declaration: true
+        require_braces_around_control_structures: true
+
+filter:
+    excluded_paths:
+        - tests/*
+
+coding_style:
+    php:
+        spaces:
+            before_parentheses:
+                closure_definition: true
+            around_operators:
+                concatenation: true
+        braces:
+            classes_functions:
+                class: new-line
+                function: new-line
+                closure: end-of-line
+            if:
+                opening: end-of-line
+            for:
+                opening: end-of-line
+            while:
+                opening: end-of-line
+            do_while:
+                opening: end-of-line
+            switch:
+                opening: end-of-line
+            try:
+                opening: end-of-line
+        upper_lower_casing:
+            keywords:
+                general: lower
+            constants:
+                true_false_null: lower
