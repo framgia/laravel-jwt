@@ -1,5 +1,9 @@
 # Native Laravel JWT Authentication Driver
 
+[![Scrutinizer Code Quality](https://img.shields.io/scrutinizer/g/framgia/laravel-jwt.svg)](https://scrutinizer-ci.com/g/framgia/laravel-jwt/?branch=master)
+[![Travis Build Status](https://img.shields.io/travis/framgia/laravel-jwt.svg)](https://travis-ci.org/framgia/laravel-jwt)
+[![Packagist Version](https://img.shields.io/packagist/vpre/framgia/laravel-jwt.svg)](https://packagist.org/packages/framgia/laravel-jwt)
+
 This package provides a native Laravel driver for JWT Authentication.
 
 ## Installation
