@@ -24,7 +24,7 @@ class JwtServiceProvider extends ServiceProvider
         $manager = $this->app[AuthManager::class];
 
         $manager->extend('jwt', function ($app, $name, $config) use ($manager) {
-            $guard = new Guard($manager->provider($config['provider']), $app[Request::class], $app[Blacklist::class], $app[SignerContract::class]);
+            $guard = new Guard($manager->createUserProvider($config['provider']), $app[Request::class], $app[Blacklist::class], $app[SignerContract::class]);
 
             $app->refresh(Request::class, $guard, 'setRequest');
 
