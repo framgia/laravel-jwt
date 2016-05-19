@@ -296,7 +296,56 @@ class GuardTest extends PHPUnit_Framework_TestCase
 
         $guard = new Framgia\Jwt\Guard($provider, $request, $blacklist, $signer);
 
-        $this->assertFalse($guard->logout());
+        $this->assertTrue($guard->logout());
+    }
+
+    public function testSetToken()
+    {
+        $user = m::mock(\Illuminate\Contracts\Auth\Authenticatable::class);
+
+        $provider = m::mock(Illuminate\Contracts\Auth\UserProvider::class);
+        $provider->shouldReceive('retrieveById')->once()->andReturn($user);
+
+        $blacklist = m::mock(Framgia\Jwt\Blacklist::class);
+        $signer = m::mock(Framgia\Jwt\Contracts\Signer::class);
+
+        $request = Illuminate\Http\Request::create('/');
+
+        $guard = new Framgia\Jwt\Guard($provider, $request, $blacklist, $signer);
+
+        $reflection = new ReflectionClass($guard);
+        $property = $reflection->getProperty('token');
+        $property->setAccessible(true);
+
+        $token = (new \Lcobucci\JWT\Builder())->setSubject(1)->setExpiration(time() + 3600)->getToken();
+
+        $this->assertInstanceOf(\Framgia\Jwt\Guard::class, $guard->setToken($token));
+        $this->assertEquals($token, $property->getValue($guard));
+
+        $guard->user();
+    }
+
+    public function testSetUser()
+    {
+        $user = m::mock(\Illuminate\Contracts\Auth\Authenticatable::class);
+        $user->shouldReceive('getAuthIdentifier')->once()->andReturn(1);
+
+        $provider = m::mock(Illuminate\Contracts\Auth\UserProvider::class);
+        $blacklist = m::mock(Framgia\Jwt\Blacklist::class);
+        $signer = new Framgia\Jwt\Signers\Hmac('test');
+
+        $request = Illuminate\Http\Request::create('/');
+
+        $guard = new Framgia\Jwt\Guard($provider, $request, $blacklist, $signer);
+
+        $reflection = new ReflectionClass($guard);
+        $property = $reflection->getProperty('user');
+        $property->setAccessible(true);
+
+        $this->assertInstanceOf(\Framgia\Jwt\Guard::class, $guard->setUser($user));
+        $token = $guard->token();
+        $this->assertInstanceOf(\Lcobucci\JWT\Token::class, $token);
+        $this->assertEquals(1, $token->getClaim('sub'));
     }
 }
 

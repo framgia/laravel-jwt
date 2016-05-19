@@ -3,6 +3,7 @@
 namespace Framgia\Jwt;
 
 use Carbon\Carbon;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Builder;
@@ -13,6 +14,7 @@ use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\UserProvider;
 use Framgia\Jwt\Contracts\ProvidesCredentials;
 use Illuminate\Contracts\Auth\Guard as GuardContract;
+use Lcobucci\JWT\Token;
 
 class Guard implements GuardContract
 {
@@ -36,6 +38,11 @@ class Guard implements GuardContract
     protected $signer;
 
     /**
+     * @var \Lcobucci\JWT\Token
+     */
+    protected $token;
+
+    /**
      * Create a new authentication guard.
      *
      * @param  \Illuminate\Contracts\Auth\UserProvider  $provider
@@ -56,6 +63,23 @@ class Guard implements GuardContract
         $this->signer = $signer;
     }
 
+    public function token()
+    {
+        if (empty($this->token)) {
+            $this->token = $this->getTokenForRequest();
+        }
+
+        return $this->token;
+    }
+
+    public function setToken(Token $token)
+    {
+        $this->token = $token;
+        $this->user = null;
+
+        return $this;
+    }
+
     /**
      * Get the currently authenticated user.
      *
@@ -72,13 +96,21 @@ class Guard implements GuardContract
 
         $user = null;
 
-        $token = $this->getTokenForRequest();
+        $token = $this->token();
 
         if (! is_null($token)) {
             $user = $this->provider->retrieveById($token->getClaim('sub'));
         }
 
         return $this->user = $user;
+    }
+
+    public function setUser(Authenticatable $user)
+    {
+        $this->user = $user;
+        $this->token = $this->createTokenForUser($this->user);
+
+        return $this;
     }
 
     /**
@@ -134,13 +166,22 @@ class Guard implements GuardContract
             return null;
         }
 
+        return $this->token = $this->createTokenForUser($this->user);
+    }
+
+    /**
+     * @param  Authenticatable  $user
+     * @return Token
+     */
+    public function createTokenForUser(Authenticatable $user)
+    {
         $builder = new Builder();
 
-        $id = $this->user->getAuthIdentifier();
+        $id = $user->getAuthIdentifier();
         $builder->setSubject($id);
 
-        if ($this->user instanceof ProvidesCredentials) {
-            foreach($this->user->getCredentials() as $key => $value) {
+        if ($user instanceof ProvidesCredentials) {
+            foreach($user->getCredentials() as $key => $value) {
                 $builder->set($key, $value);
             }
         }
@@ -157,19 +198,20 @@ class Guard implements GuardContract
      */
     public function logout()
     {
-        $token = $this->request->bearerToken();
+        $token = $this->getTokenForRequest();
 
         if (empty($token)) {
-            return true;
+            $result = true;
+        } else {
+            $result = $this->blacklist->add($token);
         }
 
-        try {
-            $token = (new Parser())->parse($token);
-        } catch (InvalidArgumentException $e) {
-            return false;
+        if ($result) {
+            $this->token = null;
+            $this->user = null;
         }
 
-        return $this->blacklist->add($token);
+        return $result;
     }
 
     /**
