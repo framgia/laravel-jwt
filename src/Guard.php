@@ -3,6 +3,7 @@
 namespace Framgia\Jwt;
 
 use Carbon\Carbon;
+use Framgia\Jwt\Contracts\ChecksClaims;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
 use Lcobucci\JWT\Parser;
@@ -99,7 +100,11 @@ class Guard implements GuardContract
         $token = $this->token();
 
         if (! is_null($token)) {
-            $user = $this->provider->retrieveById($token->getClaim('sub'));
+            if ($this->provider instanceof ChecksClaims) {
+                $user = $this->provider->retrieveByClaims($token->getClaims());
+            } else {
+                $user = $this->provider->retrieveById($token->getClaim('sub'));
+            }
         }
 
         return $this->user = $user;

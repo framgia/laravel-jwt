@@ -50,6 +50,34 @@ class GuardTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($user, $guard->user());
     }
 
+    public function testPassingClaimsToProvider()
+    {
+        $user = m::mock(\Illuminate\Contracts\Auth\Authenticatable::class);
+
+        $provider = m::mock(Illuminate\Contracts\Auth\UserProvider::class, Framgia\Jwt\Contracts\ChecksClaims::class);
+        $provider->shouldNotReceive('retrieveById');
+
+        $blacklist = m::mock(Framgia\Jwt\Blacklist::class);
+        $signer = m::mock(Framgia\Jwt\Contracts\Signer::class);
+
+        $request = Illuminate\Http\Request::create('/');
+
+        $token = (new \Lcobucci\JWT\Builder())
+            ->setSubject(1)
+            ->setExpiration(time() + 3600)
+            ->getToken();
+
+        $provider->shouldReceive('retrieveByClaims')->once()->with($token->getClaims())->andReturn($user);
+
+        $signer->shouldReceive('verify')->once()->andReturn(true);
+
+        $request->headers->set('Authorization', 'Bearer '.$token);
+
+        $guard = new Framgia\Jwt\Guard($provider, $request, $blacklist, $signer);
+
+        $this->assertEquals($user, $guard->user());
+    }
+
     public function testUserWithSignedToken()
     {
         $user = m::mock(\Illuminate\Contracts\Auth\Authenticatable::class);
