@@ -23,7 +23,7 @@ class ServiceProviderTokensTest extends PHPUnit_Framework_TestCase
         $provider = new \Framgia\Jwt\JwtServiceProvider($app);
         $provider->register();
 
-        $this->assertInstanceOf(\Framgia\Jwt\Storage\CacheStorage::class, $app->make(\Framgia\Jwt\Storage\CacheStorage::class));
+        $this->assertInstanceOf(\Framgia\Jwt\StorageManager::class, $app->make(\Framgia\Jwt\StorageManager::class));
         $this->assertInstanceOf(\Framgia\Jwt\Contracts\Storage::class, $app->make(\Framgia\Jwt\Contracts\Storage::class));
         $this->assertInstanceOf(\Framgia\Jwt\Blacklist::class, $app->make(\Framgia\Jwt\Blacklist::class));
         $this->assertInstanceOf(\Framgia\Jwt\Signers\Factory::class, $app->make(\Framgia\Jwt\Signers\Factory::class));

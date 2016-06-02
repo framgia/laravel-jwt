@@ -16,4 +16,16 @@ return [
 
     ],
 
+    'storage' => [
+
+        'driver' => 'cache',
+
+        'cache' => [
+
+            'tag' => 'jwt',
+
+        ],
+
+    ]
+
 ];

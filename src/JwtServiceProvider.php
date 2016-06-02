@@ -39,8 +39,8 @@ class JwtServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton(CacheStorage::class, function ($app) {
-            return new CacheStorage($app[Cache::class]);
+        $this->app->singleton(StorageManager::class, function ($app) {
+            return new StorageManager($app);
         });
 
         $this->app->singleton(Blacklist::class, function ($app) {
@@ -55,6 +55,8 @@ class JwtServiceProvider extends ServiceProvider
             return $app[SignerFactory::class]->driver();
         });
 
-        $this->app->alias(CacheStorage::class, StorageContract::class);
+        $this->app->bind(StorageContract::class, function ($app) {
+            return $app[StorageManager::class]->driver();
+        });
     }
 }
