@@ -224,6 +224,31 @@ class GuardTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($guard->validate($credentials));
     }
 
+    public function testRefresh()
+    {
+        $token = (new \Lcobucci\JWT\Builder())
+            ->setId(123)
+            ->setSubject(1)
+            ->setExpiration($time = time() + 3600)
+            ->set('foo', 'bar')
+            ->getToken();
+
+        $provider = m::mock(Illuminate\Contracts\Auth\UserProvider::class);
+        $blacklist = m::mock(Framgia\Jwt\Blacklist::class);
+        $signer = new Framgia\Jwt\Signers\Hmac('test');
+
+        $request = Illuminate\Http\Request::create('/');
+
+        $guard = new Framgia\Jwt\Guard($provider, $request, $blacklist, $signer);
+
+        $newToken = $guard->refresh($token);
+
+        $this->assertEquals(123, $newToken->getClaim('jti'));
+        $this->assertEquals(1, $newToken->getClaim('sub'));
+        $this->assertEquals('bar', $newToken->getClaim('foo'));
+        $this->assertNotEquals($time, $newToken->getClaim('exp'));
+    }
+
     public function testAttemptWithAdditionalCredentials()
     {
         $credentials = ['foo' => 'bar'];
@@ -233,6 +258,7 @@ class GuardTest extends PHPUnit_Framework_TestCase
         $user->shouldReceive('getCredentials')->once()->andReturn([
             'admin' => true,
             'foo' => 'bar',
+            'sub' => 10,
         ]);
 
         $provider = m::mock(Illuminate\Contracts\Auth\UserProvider::class);
@@ -251,6 +277,8 @@ class GuardTest extends PHPUnit_Framework_TestCase
         $this->assertInstanceOf(\Lcobucci\JWT\Token::class, $token);
         $this->assertEquals(true, $token->getClaim('admin'));
         $this->assertEquals('bar', $token->getClaim('foo'));
+        // Subject must be protected.
+        $this->assertEquals(1, $token->getClaim('sub'));
 
         $this->assertTrue($guard->validate($credentials));
     }

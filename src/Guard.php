@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Framgia\Jwt\Contracts\ChecksClaims;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
+use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Builder;
 use Illuminate\Http\Request;
@@ -20,6 +21,21 @@ use Lcobucci\JWT\Token;
 class Guard implements GuardContract
 {
     use GuardHelpers;
+
+    /**
+     * Default claims.
+     * 
+     * @var array
+     */
+    protected $claims = [
+        'aud' => 'Audience',
+        'exp' => 'Expiration',
+        'jti' => 'Id',
+        'iat' => 'IssuedAt',
+        'iss' => 'Issuer',
+        'nbf' => 'NotBefore',
+        'sub' => 'Subject',
+    ];
 
     /**
      * The request instance.
@@ -64,6 +80,11 @@ class Guard implements GuardContract
         $this->signer = $signer;
     }
 
+    /**
+     * Get current token.
+     * 
+     * @return \Lcobucci\JWT\Token
+     */
     public function token()
     {
         if (empty($this->token)) {
@@ -71,6 +92,25 @@ class Guard implements GuardContract
         }
 
         return $this->token;
+    }
+
+    /**
+     * Refresh token expiration with same ID.
+     * 
+     * @param  \Lcobucci\JWT\Token|null  $token
+     * @return \Lcobucci\JWT\Token
+     */
+    public function refresh(Token $token = null)
+    {
+        if (is_null($token)) {
+            $token = $this->token();
+        }
+        
+        $builder = $this->applyClaims($token->getClaims());
+        
+        $builder->setExpiration($this->getExpirationTimestamp());
+
+        return $this->signer->sign($builder)->getToken();
     }
 
     public function setToken(Token $token)
@@ -186,12 +226,10 @@ class Guard implements GuardContract
         $builder->setSubject($id);
 
         if ($user instanceof ProvidesCredentials) {
-            foreach($user->getCredentials() as $key => $value) {
-                $builder->set($key, $value);
-            }
+            $builder = $this->applyClaims($user->getCredentials(), true, $builder);
         }
 
-        $builder->setExpiration(Carbon::now()->addDay()->timestamp);
+        $builder->setExpiration($this->getExpirationTimestamp());
 
         $builder->setId(Str::random());
 
@@ -230,5 +268,48 @@ class Guard implements GuardContract
         $this->request = $request;
 
         return $this;
+    }
+
+    /**
+     * Apply claims to builder.
+     * 
+     * @param  array  $claims
+     * @param  bool  $protect
+     * @param  \Lcobucci\JWT\Builder|null  $builder
+     * @return \Lcobucci\JWT\Builder
+     */
+    protected function applyClaims(array $claims, $protect = false, Builder $builder = null)
+    {
+        if (is_null($builder)) {
+            $builder = new Builder();
+        }
+
+        foreach ($claims as $key => $value) {
+
+            if ($value instanceof Claim) {
+                $key = $value->getName();
+                $value = $value->getValue();
+            }
+
+            if (array_key_exists($key, $this->claims)) {
+                if (!$protect) {
+                    $builder->{'set' . $this->claims[$key]}($value);
+                }
+            } else {
+                $builder->set($key, $value);
+            }
+        }
+
+        return $builder;
+    }
+
+    /**
+     * Get token expiration timestamp.
+     * 
+     * @return int
+     */
+    protected function getExpirationTimestamp()
+    {
+        return Carbon::now()->addDay()->timestamp;
     }
 }
