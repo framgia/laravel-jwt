@@ -158,6 +158,11 @@ class Guard implements GuardContract
         return $this;
     }
 
+    public function login(Authenticatable $user)
+    {
+        return $this->setUser($user);
+    }
+
     /**
      * Get the token for the current request.
      *
